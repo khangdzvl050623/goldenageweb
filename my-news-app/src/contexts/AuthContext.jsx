@@ -1,13 +1,14 @@
-import React, {createContext, useState, useEffect, useContext} from 'react';
-import {useNavigate} from 'react-router-dom';
+// src/contexts/AuthContext.jsx
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // 1. Tạo Context
 export const AuthContext = createContext(null);
 
 // 2. Tạo Provider Component
-export const AuthProvider = ({children}) => {
-  const [user, setUser] = useState(null); // Lưu thông tin user (email, role, name...)
-  const [loading, setLoading] = useState(true); // Trạng thái loading ban đầu
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   // Kiểm tra token trong localStorage khi ứng dụng khởi động
@@ -15,38 +16,44 @@ export const AuthProvider = ({children}) => {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        // Giải mã token để lấy thông tin người dùng (payload)
         const payload = JSON.parse(atob(token.split('.')[1]));
-        setUser({email: payload.sub, role: payload.role, name: payload.name}); // Giả sử payload có sub (email), role và name
+        // Sửa: Lấy id từ payload với khóa "userId"
+        setUser({
+          id: payload.userId, // Thay payload.id bằng payload.userId
+          email: payload.sub,
+          role: payload.role,
+          token: token,
+        });
       } catch (error) {
         console.error("Invalid token:", error);
-        localStorage.removeItem('token'); // Xóa token cũ nếu không hợp lệ
+        localStorage.removeItem('token');
       }
     }
-    setLoading(false); // Đã kiểm tra xong token ban đầu
+    setLoading(false);
   }, []);
-
   // Hàm để đăng nhập
   const login = (userData, token) => {
-    localStorage.setItem('token', token);
-    setUser(userData); // Set user info after login
-    navigate('/'); // Chuyển hướng về trang chủ
+    const finalToken = token.startsWith('Bearer ') ? token.split(' ')[1] : token;
+    localStorage.setItem('token', finalToken);
+
+    setUser({ ...userData, token: finalToken });
+    navigate('/');
+    window.location.reload();
   };
 
   // Hàm để đăng xuất
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    navigate('/login'); // Chuyển hướng về trang đăng nhập sau khi đăng xuất
+    navigate('/login');
   };
 
-  // Nếu đang loading (đang kiểm tra token), có thể hiển thị spinner hoặc null
   if (loading) {
-    return <div>Loading authentication...</div>; // Hoặc một spinner/placeholder
+    return <div>Loading authentication...</div>;
   }
 
   return (
-    <AuthContext.Provider value={{user, login, logout}}>
+    <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

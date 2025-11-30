@@ -1,8 +1,8 @@
 // src/features/financial/hooks/useExchangeRateData.jsx
 import { useState, useEffect } from 'react';
 
-const EXCHANGE_RATE_API_ENDPOINT = 'https://goldenages.online/api/exchange-rate/current-exchange-rate';
-
+// const EXCHANGE_RATE_API_ENDPOINT = 'https://goldenages.online/api/exchange-rate/current-exchange-rate';
+const EXCHANGE_RATE_API_ENDPOINT = 'http://localhost:8383/api/exchange-rate/current-exchange-rate';
 export const useExchangeRateData = () => {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {ChakraProvider, extendTheme} from '@chakra-ui/react';
 import App from './App.jsx';
 import './index.css';
@@ -40,13 +41,15 @@ const theme = extendTheme({
     '2xl': '96em', // 1536px
   },
 });
-
+const queryClient = new QueryClient();
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ChakraProvider theme={theme}>
       <BrowserRouter> {/* Bọc AuthProvider và App bên trong BrowserRouter */}
         <AuthProvider>
-          <App />
+          <QueryClientProvider client={queryClient}>
+            <App />
+          </QueryClientProvider>
         </AuthProvider>
       </BrowserRouter>
     </ChakraProvider>

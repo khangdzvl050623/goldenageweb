@@ -8,8 +8,12 @@ import RegisterPage from './pages/RegisterPage.jsx';
 import ArticleDetailPage from './pages/ArticleDetailPage.jsx';
 import BookmarksPage from './pages/BookmarksPage.jsx';
 import FinancialInfoPage from './pages/FinancialInfoPage';
+import GoldPricePage from './pages/GoldPricePage.jsx';
 import HomePage from './pages/HomePage.jsx';
+import TopicsPage from './pages/TopicsPage.jsx';
+import VideosPage from './pages/VideosPage.jsx';
 import { SearchProvider } from './contexts/SearchContext.jsx';
+import ExchangeRatePage from './pages/ExchangeRatePage.jsx';
 
 function App() {
   return (
@@ -18,9 +22,15 @@ function App() {
     <Routes>
       <Route path="/" element={<AppLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="/financial" element={<FinancialInfoPage />} />
+        <Route path="financial">
+          <Route index element={<FinancialInfoPage />} />
+          <Route path="gold" element={<GoldPricePage />} />
+          <Route path="exchange" element={<ExchangeRatePage />} />
+        </Route>
         <Route path="articles/:id" element={<ArticleDetailPage />} />
-        <Route path="/bookmarks" element={<BookmarksPage />} />
+        <Route path="bookmarks" element={<BookmarksPage />} />
+        <Route path="topics" element={<TopicsPage />} />
+        <Route path="videos" element={<VideosPage />} />
       </Route>
 
       <Route path="/login" element={<LoginPage />} />

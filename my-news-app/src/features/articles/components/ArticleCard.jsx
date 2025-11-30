@@ -1,87 +1,186 @@
 // src/features/articles/components/ArticleCard.jsx
-import React from 'react';
-import {
-  Box,
-  Heading,
-  Text,
-  Image,
-  VStack,
-  Flex,
-} from '@chakra-ui/react';
+import { Box, Image, Text, Badge, HStack, Icon, Button, Flex } from '@chakra-ui/react';
+import { Clock, ChevronRight } from 'lucide-react';
 import { Link as RouterLink } from 'react-router-dom';
-import ArticleBookmarkButton from './ArticleBookmarkButton.jsx';
+import React, { useState } from 'react';
+import ArticleBookmarkButton from './ArticleBookmarkButton';
 
-/**
- * A component to display an article card with view and bookmark options.
- * The entire card serves as a navigation link, except for the bookmark button.
- * @param {{id: string, title: string, content: string, mediaUrl: string}} article - Article data.
- */
 const ArticleCard = ({ article }) => {
+  const [mediaError, setMediaError] = useState(false);
+
+  const getFallbackUrl = () => {
+    const title = article.title || 'Bài viết';
+    const encoded = encodeURIComponent(title.slice(0, 20));
+    return `https://placehold.co/300x200/E2E8F0/A0AEC0?text=${encoded}`;
+  };
+
+  // Xử lý media type - tin tưởng backend
+  const mediaUrl = article.mediaUrl || '';
+  const mediaType = (article.mediaType || '').toLowerCase();
+  
+  // Ưu tiên mediaType từ backend, chỉ dùng video tag khi mediaType === 'video'
+  // Nếu video load lỗi, sẽ fallback về image
+  const isVideoType = mediaType === 'video';
+  const shouldUseVideoTag = isVideoType && !mediaError;
+
+  // Lấy thumbnail hoặc fallback
+  const posterUrl = article.thumbnailUrl || getFallbackUrl();
+
   return (
     <Box
-      borderWidth="1px"
+      as={RouterLink}
+      to={`/articles/${article.id}`}
       borderRadius="lg"
       overflow="hidden"
-      p={4}
       bg="white"
-      _hover={{ boxShadow: "lg", transform: "translateY(-2px)", transition: "all 0.2s" }}
-      height="100%"
-      display="flex"
-      flexDirection="column"
-      position="relative"
-      textDecoration="none"
+      shadow="sm"
+      _hover={{ shadow: 'md', transform: 'translateY(-2px)' }}
+      transition="all 0.2s"
       cursor="pointer"
-      // Lần này chúng ta không dùng onClick trên Box nữa
-      // thay vào đó, chúng ta sẽ để RouterLink bao bọc toàn bộ nội dung
+      display="flex"
+      flexDirection={{ base: 'column', md: 'row' }}
+      textDecoration="none"
+      position="relative"
+      w="full"
     >
-      <RouterLink to={`/articles/${article.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-        <Box>
-          {/* Bookmark button with high z-index and click stop propagation */}
-          <Flex
+      {/* Media Container */}
+      <Box
+        position="relative"
+        flexShrink={0}
+        w={{ base: '100%', md: '38%' }}
+        maxW={{ md: '360px' }}
+        h={{ base: '200px', md: '180px' }}
+        overflow="hidden"
+        bg="gray.100"
+      >
+        {shouldUseVideoTag ? (
+          <video
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+            src={mediaUrl}
+            poster={posterUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            controls={false}
+            onError={() => {
+              console.warn('Video load failed, falling back to image:', article.title);
+              setMediaError(true);
+            }}
+            onLoadedData={(e) => {
+              e.target.play().catch((err) => {
+                console.warn('Video autoplay failed:', err);
+              });
+            }}
+          />
+        ) : (
+          <Image
+            src={mediaError ? posterUrl : (mediaUrl || getFallbackUrl())}
+            alt={article.title}
+            w="100%"
+            h="100%"
+            objectFit="cover"
+            fallbackSrc={getFallbackUrl()}
+            onError={(e) => {
+              console.warn('Image load failed:', article.title);
+              e.target.src = getFallbackUrl();
+            }}
+            loading="lazy"
+          />
+        )}
+        
+        {/* Category Badge */}
+        <Badge
+          position="absolute"
+          top="3"
+          left="3"
+          colorScheme={
+            article.category === 'Thể thao' ? 'green' :
+            article.category === 'Giải trí' ? 'pink' :
+            article.category === 'Kinh doanh' ? 'blue' :
+            article.category === 'Sức khỏe' ? 'red' :
+            article.category === 'Gia đình' ? 'purple' :
+            article.category === 'Công nghệ' ? 'cyan' : 'orange'
+          }
+          fontSize="xs"
+          fontWeight="bold"
+          px="2"
+          py="1"
+          borderRadius="full"
+        >
+          {article.category}
+        </Badge>
+
+        {/* Video indicator badge (optional) */}
+        {isVideoType && !mediaError && (
+          <Badge
             position="absolute"
-            top={4}
-            right={4}
-            zIndex={100}
+            bottom="3"
+            right="3"
+            bg="blackAlpha.700"
+            color="white"
+            fontSize="xs"
+            px="2"
+            py="1"
+            borderRadius="md"
           >
-            <ArticleBookmarkButton article={article} />
-          </Flex>
+            ▶ Video
+          </Badge>
+        )}
+      </Box>
 
-          {article.mediaUrl && (
-            <Box
-              position="relative"
-              width="100%"
-              maxH="180px"
-              borderRadius="lg"
-              overflow="hidden"
-              mb={2}
-            >
-              <Image
-                src={article.mediaUrl}
-                alt={article.title}
-                objectFit="cover"
-                width="100%"
-                height="100%"
-                onError={(e) => {
-                  e.target.src = 'https://placehold.co/600x400/E2E8F0/A0AEC0?text=No+Image';
-                }}
-              />
-            </Box>
-          )}
+      {/* Content */}
+      <Flex
+        flex="1"
+        p="5"
+        flexDirection="column"
+        justifyContent="space-between"
+        position="relative"
+      >
+        <Box>
+          <Text
+            fontSize={{ base: 'md', md: 'lg' }}
+            fontWeight="bold"
+            noOfLines={2}
+            color="gray.800"
+            mb="3"
+            lineHeight="1.4"
+          >
+            {article.title}
+          </Text>
 
-          <VStack align="start" spacing={3} flex="1">
-            <Heading as="h3" size="md" color="gray.800" noOfLines={3}>
-              {article.title}
-            </Heading>
-            <Text mt={2} color="gray.600" noOfLines={4}>
-              {article.content}
-            </Text>
-          </VStack>
-
-          <Flex justify="space-between" align="center" mt={4} width="full">
-            {article.readTime && <Text fontSize="xs" color="gray.500">{article.readTime} read</Text>}
-          </Flex>
+          <HStack color="gray.500" fontSize="sm" spacing="2" mb="3">
+            <HStack spacing="1">
+              <Icon as={Clock} boxSize={4} />
+              <Text>{article.readTime}</Text>
+            </HStack>
+            <Text>•</Text>
+            <Text>{article.publishedAt}</Text>
+          </HStack>
         </Box>
-      </RouterLink>
+
+        <Flex justifyContent="space-between" alignItems="center" mt="auto">
+          <Button
+            variant="link"
+            colorScheme="blue"
+            rightIcon={<ChevronRight size={16} />}
+            fontWeight="medium"
+            fontSize="sm"
+            p="0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Đọc thêm
+          </Button>
+          <Box onClick={(e) => e.stopPropagation()}>
+            <ArticleBookmarkButton article={article} />
+          </Box>
+        </Flex>
+      </Flex>
     </Box>
   );
 };

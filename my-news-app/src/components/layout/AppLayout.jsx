@@ -1,58 +1,99 @@
-import {Box, Flex, Text, Grid, GridItem} from '@chakra-ui/react';
-import React from 'react';
-import {Outlet} from 'react-router-dom';
-
-import Header from './AppHeader.jsx'; // Sửa lại thành Header
+// src/app/AppLayout.jsx
+import { Box, Grid, GridItem } from '@chakra-ui/react';
+import { Outlet, useLocation } from 'react-router-dom';
+import Header from './AppHeader.jsx';
 import Sidebar from './Sidebar.jsx';
 import RightSidebar from './RightSidebar.jsx';
-import Footer from './Footer.jsx'; // Thêm Footer
+import Footer from './Footer.jsx';
+import NewsletterBox from './NewsletterBox.jsx';
+import HeroSection from './HeroSection.jsx';
+import { useSearchContext } from '../../contexts/SearchContext.jsx';
 
-// AppLayout bây giờ chỉ bao bọc layout, không xử lý data
 const AppLayout = () => {
-  return (
-    <Box>
-      {/* Header / Navbar */}
-      <Header/>
+  const location = useLocation();
+  const { activeSearchTerm } = useSearchContext();
 
-      {/* Main Content Area */}
+  // Kiểm tra có đang search không
+  const isSearching = activeSearchTerm && activeSearchTerm.trim() !== '';
+
+  // Chỉ hiện HeroSection ở HomePage VÀ khi KHÔNG đang search
+  const showHero = location.pathname === '/' && !isSearching;
+
+  return (
+    <Box minH="100vh" display="flex" flexDirection="column" bg="gray.50">
+      {/* HEADER - FULL WIDTH */}
+      <Header />
+
+      {/* HERO SECTION - FULL WIDTH (chỉ hiện ở HomePage khi không search) */}
+      {showHero && (
+        <Box w="100%" mt={0}>
+          <HeroSection />
+        </Box>
+      )}
+
+      {/* MAIN GRID - 3 CỘT */}
       <Grid
         templateColumns={{
           base: '1fr',
-          md: '200px 1fr',
-          lg: '240px 1fr 300px',
+          md: '180px 1fr',
+          lg: '200px 1fr 220px',
         }}
-        gap={{base: 4, md: 6}}
-        px={{base: 4, md: 8}}
-        py={{base: 2, md: 4}}
-        maxWidth="1280px"
+        gap={{ base: 4, md: 4, lg: 5 }}
+        px={{ base: 4, md: 4, lg: 5 }}
+        py={{ base: 4, md: 6 }}
+        flex="1"
+        maxW="1500px"
         mx="auto"
+        w="100%"
       >
-        {/* Left Sidebar */}
+        {/* LEFT SIDEBAR */}
         <GridItem
-          as="aside"
-          colSpan={{base: 1, md: 1, lg: 1}}
-          display={{base: 'none', md: 'block'}}
+          display={{ base: 'none', md: 'block' }}
+          minW={{ md: '180px', lg: '200px' }}
+          maxW={{ md: '180px', lg: '200px' }}
+          alignSelf="start"
         >
-          <Sidebar/>
+          <Sidebar />
         </GridItem>
 
-        {/* Main Content - Hiển thị các trang con thông qua Outlet */}
-        <GridItem as="main" colSpan={{base: 1, md: 1, lg: 1}}>
-          <Outlet/>
+        {/* MAIN CONTENT */}
+        <GridItem
+          bg="white"
+          borderRadius="2xl"
+          boxShadow="md"
+          p={{ base: 4, md: 6, lg: 8 }}
+          minH="60vh"
+          flex="1 1 0%"
+          minW="0"
+          overflow="visible"
+        >
+          <Outlet />
         </GridItem>
 
-        {/* Right Sidebar */}
+        {/* RIGHT SIDEBAR */}
         <GridItem
-          as="aside"
-          colSpan={{base: 1, md: 1, lg: 1}}
-          display={{base: 'none', lg: 'block'}}
+          display={{ base: 'none', lg: 'block' }}
+          minW="220px"
+          maxW="220px"
+          bg="white"
+          borderRadius="xl"
+          p="4"
+          boxShadow="sm"
+          position="sticky"
+          top="100px"
+          alignSelf="start"
         >
-          <RightSidebar/>
+          <RightSidebar />
         </GridItem>
       </Grid>
 
-      {/* Footer */}
-      <Footer/>
+      {/* NEWSLETTER BOX - FULL WIDTH - HIỆN Ở TẤT CẢ TRANG */}
+      <Box w="100%" mt={0}>
+        <NewsletterBox />
+      </Box>
+
+      {/* FOOTER - FULL WIDTH */}
+      <Footer />
     </Box>
   );
 };

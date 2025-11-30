@@ -1,120 +1,112 @@
-import React, {createContext, useContext, useState, useEffect, useCallback} from 'react';
-import {useArticles} from '../features/articles/hooks/useArticles.jsx';
+// src/contexts/SearchContext.jsx
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { useArticles } from '../features/articles/hooks/useArticles';
 
 const SearchContext = createContext();
 
-/**
- * Custom hook to encapsulate all search logic.
- * This hook performs client-side searching on a given list of articles.
- * It also includes debouncing for suggestions to avoid excessive re-renders.
- * @param {Array} initialArticles - The list of articles to search through.
- */
+// Hook xử lý search (giữ nguyên)
 const useSearch = (initialArticles) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState(null);
-  const [suggestions, setSuggestions] = useState([]);
+  const [activeSearchTerm, setActiveSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState(null);
-  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
 
   const executeSearch = useCallback((term) => {
-    setIsSearching(true);
-    setSearchError(null);
-    try {
-      if (!initialArticles) {
-        setSearchResults([]);
-        return;
-      }
-
-      const filteredResults = initialArticles.filter(article =>
-        article.title.toLowerCase().includes(term.toLowerCase())
-      );
-      setSearchResults(filteredResults);
-    } catch (err) {
-      console.error('Search error:', err);
-      setSearchError('An error occurred during the search.');
+    const trimmed = term.trim();
+    if (!trimmed || !initialArticles) {
+      setActiveSearchTerm('');
       setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const filtered = initialArticles.filter(article =>
+        article.title.toLowerCase().includes(trimmed.toLowerCase()) ||
+        (article.content && article.content.toLowerCase().includes(trimmed.toLowerCase()))
+      );
+      setActiveSearchTerm(trimmed);
+      setSearchResults(filtered);
     } finally {
       setIsSearching(false);
     }
   }, [initialArticles]);
 
-  const resetSearchState = useCallback(() => {
-    setSearchTerm('');
-    setSearchResults(null);
-    setSuggestions([]);
-    setIsSearching(false);
-    setSearchError(null);
-  }, []);
-
-  const handleSearchTermChange = useCallback((event) => {
-    const term = event.target.value;
+  const handleSearchTermChange = useCallback((e) => {
+    const term = e.target.value;
     setSearchTerm(term);
-
-    if (term.length > 2) {
-      setIsFetchingSuggestions(true);
-      const newSuggestions = initialArticles
-        ? initialArticles
-          .filter(article => article.title.toLowerCase().includes(term.toLowerCase()))
-          .slice(0, 5)
-          .map(article => article.title)
-        : [];
-      setSuggestions(newSuggestions);
-      setIsFetchingSuggestions(false);
-    } else {
-      setSuggestions([]);
-    }
-  }, [initialArticles]);
-
-  const handleSelectSuggestion = useCallback((sugg) => {
-    setSearchTerm(sugg);
-    setSuggestions([]);
   }, []);
 
   useEffect(() => {
-    // This effect ensures that when searchTerm is empty, searchResults is also reset.
-    if (searchTerm === '') {
-      setSearchResults(null);
+    if (searchTerm === '' && activeSearchTerm !== '') {
+      setActiveSearchTerm('');
+      setSearchResults([]);
     }
-  }, [searchTerm]);
+  }, [searchTerm, activeSearchTerm]);
+
+  const resetSearchState = useCallback(() => {
+    setSearchTerm('');
+    setActiveSearchTerm('');
+    setSearchResults([]);
+  }, []);
 
   return {
     searchTerm,
+    activeSearchTerm,
     searchResults,
     isSearching,
-    searchError,
-    suggestions,
-    isFetchingSuggestions,
     handleSearchTermChange,
     executeSearch,
-    handleSelectSuggestion,
     resetSearchState,
   };
 };
 
-/**
- * Provider component that makes search state and functions available to any child component.
- */
-export const SearchProvider = ({children}) => {
-  const API_ENDPOINT = 'https://goldenages.online/api/scrape/history';
-  const {articles: initialArticles, isLoading, error} = useArticles(API_ENDPOINT);
-
-  const searchHook = useSearch(initialArticles);
-
-  const value = {
-    ...searchHook,
-    initialArticles,
+// Provider — FIX VÒNG LẶP VÔ HẠN
+export const SearchProvider = ({ children }) => {
+  const {
+    allArticles,
+    displayedArticles,
     isLoading,
+    isLoadingMore,
     error,
-  };
+    loadMore,
+    hasMore,
+    resetPage: resetPageFromHook,
+  } = useArticles();
 
-  return <SearchContext.Provider value={value}>{children}</SearchContext.Provider>;
+  // DÙNG useRef ĐỂ LƯU resetPage Ổn Định
+  const resetPageRef = useRef(resetPageFromHook);
+  useEffect(() => {
+    resetPageRef.current = resetPageFromHook;
+  }, [resetPageFromHook]);
+
+  const searchHook = useSearch(allArticles);
+
+  // DÙNG ref.current để tránh re-run useEffect
+  useEffect(() => {
+    if (searchHook.searchTerm === '') {
+      resetPageRef.current?.();
+    }
+  }, [searchHook.searchTerm]); // Chỉ theo dõi searchTerm
+
+  return (
+    <SearchContext.Provider value={{
+      ...searchHook,
+      displayedArticles,
+      isLoading,
+      isLoadingMore,
+      allArticles,
+      error,
+      loadMore,
+      hasMore,
+    }}>
+      {children}
+    </SearchContext.Provider>
+  );
 };
 
 export const useSearchContext = () => {
   const context = useContext(SearchContext);
-  if (!context) {
-    throw new Error('useSearchContext must be used within a SearchProvider');
-  }
+  if (!context) throw new Error('useSearchContext must be used within SearchProvider');
   return context;
 };

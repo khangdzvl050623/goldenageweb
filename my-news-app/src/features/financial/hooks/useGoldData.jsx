@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 
 // Endpoint cho giá vàng
-const GOLD_API_ENDPOINT = 'https://goldenages.online/api/gold-prices/current-gold-prices';
-
+// const GOLD_API_ENDPOINT = 'https://goldenages.online/api/gold-prices/current-gold-prices';
+const GOLD_API_ENDPOINT ='http://localhost:8383/api/gold-prices/current-gold-prices';
 export const useGoldData = () => {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);

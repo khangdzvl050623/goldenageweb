@@ -4,30 +4,76 @@ import { IconButton, useToast } from '@chakra-ui/react';
 import { FaBookmark, FaRegBookmark } from 'react-icons/fa';
 import { useBookmarks } from '../hooks/useBookmarks.jsx';
 import { useAuth } from '../../../contexts/AuthContext.jsx';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import apiClient from '../../../api/apiClient.jsx';
 
-/**
- * A standalone bookmark button for an article.
- * @param {{article: {id: string, title: string, content: string, mediaUrl: string}}} props
- */
 const ArticleBookmarkButton = ({ article }) => {
   const { user, isLoading: isAuthLoading } = useAuth();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
-  // Truyền userId trực tiếp vào useBookmarks
-  const { isBookmarked, addBookmark, removeBookmark, isLoading: isBookmarksLoading } = useBookmarks(user?.uid);
+  const { bookmarks, isLoading: isBookmarksLoading } = useBookmarks(user?.id);
 
-  const isArticleBookmarked = isBookmarked(article.id);
+  const isArticleBookmarked = bookmarks?.some(
+    (bookmark) => bookmark.articleId === article.id
+  );
   const isAuthenticated = !!user;
   const isLoading = isAuthLoading || isBookmarksLoading;
 
+  // Mutation to add a bookmark
+  const addBookmarkMutation = useMutation({
+    mutationFn: (bookmarkData) => apiClient.post('/bookmarks', bookmarkData),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['bookmarks', user?.id]);
+      toast({
+        title: "Thành công!",
+        description: "Đã thêm bài viết vào danh sách bookmark.",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    },
+    onError: (err) => {
+      console.error("Lỗi khi thêm bookmark:", err);
+      toast({
+        title: "Lỗi",
+        description: "Không thể thêm bookmark. Vui lòng thử lại sau.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  });
+
+  // Mutation to remove a bookmark
+  const removeBookmarkMutation = useMutation({
+    mutationFn: () => apiClient.delete(`/bookmarks/${user?.id}/${article.id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['bookmarks', user?.id]);
+      toast({
+        title: "Thành công!",
+        description: "Đã xóa bài viết khỏi danh sách bookmark.",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    },
+    onError: (err) => {
+      console.error("Lỗi khi xóa bookmark:", err);
+      toast({
+        title: "Lỗi",
+        description: "Không thể xóa bookmark. Vui lòng thử lại sau.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  });
+
   const handleBookmarkClick = (e) => {
-    // Ngăn chặn sự kiện mặc định của trình duyệt.
     e.preventDefault();
-    // Ngăn chặn sự kiện lan truyền lên các component cha.
-    // Đây là bước quan trọng để tránh click vào thẻ bài viết.
     e.stopPropagation();
 
-    // Hiển thị thông báo nếu người dùng chưa đăng nhập.
     if (!isAuthenticated) {
       toast({
         title: "Đăng nhập để lưu bài viết",
@@ -39,11 +85,43 @@ const ArticleBookmarkButton = ({ article }) => {
       return;
     }
 
-    // Xử lý logic thêm hoặc xóa bookmark.
     if (isArticleBookmarked) {
-      removeBookmark(article.id);
+      removeBookmarkMutation.mutate();
     } else {
-      addBookmark(article);
+      if (user && user.id) {
+        // GỬI ĐẦY ĐỦ THÔNG TIN ARTICLE
+        const bookmarkData = {
+          userId: user.id,
+          articleId: article.id,
+          articleTitle: article.title,
+          articleMediaUrl: article.mediaUrl,
+          articleMediaType: article.mediaType,         // THÊM
+          articleThumbnailUrl: article.thumbnailUrl,   // THÊM
+          articleCategory: article.category,
+          articleReadTime: article.readTime,
+          articleSummary: article.summary || '',
+        };
+        
+        // Debug: log dữ liệu gửi đi
+        console.log('ArticleBookmarkButton: Saving bookmark with data:', {
+          ...bookmarkData,
+          hasMediaType: !!article.mediaType,
+          mediaTypeValue: article.mediaType,
+          hasThumbnailUrl: !!article.thumbnailUrl,
+          fullArticle: article,
+        });
+        
+        addBookmarkMutation.mutate(bookmarkData);
+      } else {
+        console.error("User ID is missing.");
+        toast({
+          title: "Lỗi",
+          description: "Thông tin người dùng không hợp lệ. Vui lòng đăng nhập lại.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
     }
   };
 
@@ -54,7 +132,7 @@ const ArticleBookmarkButton = ({ article }) => {
       size="sm"
       variant="ghost"
       colorScheme={isArticleBookmarked ? "blue" : "gray"}
-      isDisabled={isLoading || !isAuthenticated}
+      isDisabled={isLoading || addBookmarkMutation.isPending || removeBookmarkMutation.isPending}
       onClick={handleBookmarkClick}
     />
   );

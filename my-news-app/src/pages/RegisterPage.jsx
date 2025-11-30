@@ -20,7 +20,7 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    setSuccess(false); // Reset success state on new attempt
+    setSuccess(false); 
     setIsLoading(true);
 
     if (password !== confirmPassword) {
@@ -30,7 +30,9 @@ const RegisterPage = () => {
     }
 
     try {
-      const response = await fetch('https://goldenages.online/api/users/register', {
+      // const response = await fetch('https://goldenages.online/api/users/register', {
+      const response = await fetch('http://localhost:8383/api/users/register', {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -39,8 +41,7 @@ const RegisterPage = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed. Please try again.');
+        throw new Error('Email không hợp lệ hoặc đã có sẵn.');
       }
 
       const data = await response.json();
@@ -49,7 +50,8 @@ const RegisterPage = () => {
 
       // Tùy chọn: Sau khi đăng ký thành công, tự động đăng nhập người dùng
       // Nếu bạn muốn người dùng tự đăng nhập sau khi đăng ký:
-      const loginResponse = await fetch('https://goldenages.online/api/users/login', {
+      // const loginResponse = await fetch('https://goldenages.online/api/users/login', {
+      const loginResponse = await fetch('http://localhost:8383/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -92,7 +94,23 @@ const RegisterPage = () => {
             Create your account
           </Heading>
 
-          {/* ... (Các nút social login, OR, error/success alert) ... */}
+          {error && (
+            <Alert status="error" borderRadius="md">
+              <AlertIcon />
+              <AlertDescription fontSize="sm">
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {success && (
+            <Alert status="success" borderRadius="md">
+              <AlertIcon />
+              <AlertDescription fontSize="sm">
+                Tạo tài khoản thành công! Vui lòng kiểm tra email để đăng nhập.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <form onSubmit={handleSubmit}>
             <FormControl id="name" isRequired mb={4}>
