@@ -21,8 +21,8 @@ const LoginPage = () => {
 
     try {
       // const response = await fetch('https://goldenages.online/api/users/login', {
+      // const response = await fetch('http://goldenages.online/api/users/login', {
       const response = await fetch('http://localhost:8383/api/users/login', {
-
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -39,9 +39,10 @@ const LoginPage = () => {
       console.log('Login successful:', data);
 
       // Giải mã token để lấy thông tin user cho Context
-      const payload = JSON.parse(atob(data.token.split('.')[1]));
-      const user = {email: payload.sub, role: payload.role, name: payload.name}; // Giả sử backend trả về name
-      login(user, data.token); // Gọi hàm login từ AuthContext
+      const token = data.accessToken || data.token;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const user = {email: payload.sub, role: payload.role, name: payload.name};
+      login(user, token);
       // Không cần alert hay navigate ở đây, hàm login đã xử lý
     } catch (err) {
       setError(err.message || 'An unexpected error occurred. Please try again.');

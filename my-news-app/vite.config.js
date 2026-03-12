@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // '/api': 'https://goldenages.online',
+      // '/api': 'http://goldenages.online',
       '/api': ' http://localhost:8383'
     },
   },

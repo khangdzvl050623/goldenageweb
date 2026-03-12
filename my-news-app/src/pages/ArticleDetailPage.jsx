@@ -40,8 +40,9 @@ const ArticleDetailPage = () => {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`http://localhost:8383/api/scrape/history/${id}`);
+        // const response = await fetch(`http://goldenages.online/api/scrape/history/${id}`);
 
+        const  response = await fetch(`http://localhost:8383/api/scrape/history/${id}`);
         if (!response.ok) {
           if (response.status === 404) {
             throw new Error('Article not found.');

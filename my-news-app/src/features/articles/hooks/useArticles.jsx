@@ -1,7 +1,7 @@
 // src/features/articles/hooks/useArticles.jsx
 import { useState, useEffect } from 'react';
 
-export const useArticles = (endpoint = 'http://localhost:8383/api/scrape/history') => {
+export const useArticles = (endpoint = 'http://goldenages.online/api/scrape/history') => {
   const [allArticles, setAllArticles] = useState([]);
   const [displayedArticles, setDisplayedArticles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

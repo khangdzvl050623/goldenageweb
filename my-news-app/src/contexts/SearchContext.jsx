@@ -1,6 +1,6 @@
 // src/contexts/SearchContext.jsx
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { useArticles } from '../features/articles/hooks/useArticles';
+import { useArticlesInfiniteScroll } from '../features/articles/hooks/useArticlesInfiniteScroll';
 
 const SearchContext = createContext();
 
@@ -61,8 +61,9 @@ const useSearch = (initialArticles) => {
   };
 };
 
-// Provider — FIX VÒNG LẶP VÔ HẠN
+// Provider — UPDATED để dùng hook mới
 export const SearchProvider = ({ children }) => {
+  //  THAY ĐỔI: Dùng useArticlesInfiniteScroll thay vì useArticles
   const {
     allArticles,
     displayedArticles,
@@ -72,9 +73,9 @@ export const SearchProvider = ({ children }) => {
     loadMore,
     hasMore,
     resetPage: resetPageFromHook,
-  } = useArticles();
+    totalElements,
+  } = useArticlesInfiniteScroll();
 
-  // DÙNG useRef ĐỂ LƯU resetPage Ổn Định
   const resetPageRef = useRef(resetPageFromHook);
   useEffect(() => {
     resetPageRef.current = resetPageFromHook;
@@ -82,12 +83,11 @@ export const SearchProvider = ({ children }) => {
 
   const searchHook = useSearch(allArticles);
 
-  // DÙNG ref.current để tránh re-run useEffect
   useEffect(() => {
     if (searchHook.searchTerm === '') {
       resetPageRef.current?.();
     }
-  }, [searchHook.searchTerm]); // Chỉ theo dõi searchTerm
+  }, [searchHook.searchTerm]);
 
   return (
     <SearchContext.Provider value={{
@@ -99,6 +99,7 @@ export const SearchProvider = ({ children }) => {
       error,
       loadMore,
       hasMore,
+      totalElements, // THÊM totalElements để ArticleFeed có thể dùng
     }}>
       {children}
     </SearchContext.Provider>

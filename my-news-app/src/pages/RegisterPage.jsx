@@ -1,76 +1,68 @@
 import React, {useState} from 'react';
 import {
   Box, Heading, FormControl, FormLabel, Input, Button, Text, Link,
-  VStack, Alert, AlertIcon, AlertDescription, Divider, HStack, Icon, Flex
+  VStack, Alert, AlertIcon, AlertDescription, Flex
 } from '@chakra-ui/react';
-import {Link as RouterLink} from 'react-router-dom';
-import {FaGithub, FaGoogle, FaApple} from 'react-icons/fa';
-import {useAuth} from '../contexts/AuthContext'; // Import useAuth
+import {Link as RouterLink, useNavigate} from 'react-router-dom';
+import {useAuth} from '../contexts/AuthContext';
 
 const RegisterPage = () => {
-  const [name, setName] = useState(''); // Đảm bảo là 'name'
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false); // Giữ lại success state để hiển thị thông báo
-  const {login} = useAuth(); // Sử dụng hook useAuth
+  const [success, setSuccess] = useState(false);
+  const {login} = useAuth();
+  const navigate = useNavigate(); // ✅ Gọi ở cấp component, không phải trong hàm
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    setSuccess(false); 
+    setSuccess(false);
     setIsLoading(true);
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError('Mật khẩu xác nhận không khớp.');
       setIsLoading(false);
       return;
     }
 
     try {
-      // const response = await fetch('https://goldenages.online/api/users/register', {
-      const response = await fetch('http://localhost:8383/api/users/register', {
-
+      const response = await fetch('http://goldenages.online/api/users/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({name, email, password}), // Đảm bảo gửi 'name'
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, email, password}),
       });
 
       if (!response.ok) {
-        throw new Error('Email không hợp lệ hoặc đã có sẵn.');
+        throw new Error('Email không hợp lệ hoặc đã được sử dụng.');
       }
 
       const data = await response.json();
       console.log('Registration successful:', data);
-      setSuccess(true); // Hiển thị thông báo thành công
+      setSuccess(true);
 
-      // Tùy chọn: Sau khi đăng ký thành công, tự động đăng nhập người dùng
-      // Nếu bạn muốn người dùng tự đăng nhập sau khi đăng ký:
-      // const loginResponse = await fetch('https://goldenages.online/api/users/login', {
-      const loginResponse = await fetch('http://localhost:8383/api/users/login', {
+      // Tự động đăng nhập sau khi đăng ký thành công
+      const loginResponse = await fetch('http://goldenages.online/api/users/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email, password}),
       });
+
       if (loginResponse.ok) {
         const loginData = await loginResponse.json();
-        const payload = JSON.parse(atob(loginData.token.split('.')[1]));
-        const user = { email: payload.sub, role: payload.role, name: payload.name };
-        login(user, loginData.token); // Tự động login và chuyển hướng
+        const token = loginData.accessToken || loginData.token; // ✅ Đọc đúng field
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const user = {email: payload.sub, role: payload.role, name: payload.name};
+        login(user, token); // AuthContext sẽ tự chuyển hướng
       } else {
-        // Nếu không tự động login được, chuyển hướng về trang login
-        navigate('/login');
+        navigate('/login'); // Fallback: chuyển về trang login thủ công
       }
 
-      // Hoặc nếu không tự động login, chỉ thông báo và để người dùng tự click login
-      navigate('/login'); // Có thể chuyển hướng trực tiếp về trang login
-
     } catch (err) {
-      setError(err.message || 'An unexpected error occurred. Please try again.');
+      setError(err.message || 'Đã xảy ra lỗi. Vui lòng thử lại.');
       console.error('Registration error:', err);
     } finally {
       setIsLoading(false);
@@ -78,7 +70,6 @@ const RegisterPage = () => {
   };
 
   return (
-    // ... (Giữ nguyên giao diện như đã sửa) ...
     <Flex minH="100vh" align="center" justify="center" bg="gray.50" w="100vw">
       <Box
         p={{base: 4, md: 8}}
@@ -97,9 +88,7 @@ const RegisterPage = () => {
           {error && (
             <Alert status="error" borderRadius="md">
               <AlertIcon />
-              <AlertDescription fontSize="sm">
-                {error}
-              </AlertDescription>
+              <AlertDescription fontSize="sm">{error}</AlertDescription>
             </Alert>
           )}
 
@@ -107,7 +96,7 @@ const RegisterPage = () => {
             <Alert status="success" borderRadius="md">
               <AlertIcon />
               <AlertDescription fontSize="sm">
-                Tạo tài khoản thành công! Vui lòng kiểm tra email để đăng nhập.
+                Tạo tài khoản thành công!
               </AlertDescription>
             </Alert>
           )}
